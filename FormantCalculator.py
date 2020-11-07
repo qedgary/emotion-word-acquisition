@@ -10,7 +10,8 @@ praatRawFormants = input("Enter the data, copied and pasted directly from Praat:
 # delete header row, if present
 if "F4_Hz" in praatRawFormants:
    praatRawFormants = praatRawFormants[praatRawFormants.index("F4_Hz") + 6:]
-   
+
+# delete all formants where Praat has an error, and convert into a list
 praatRawFormants = praatRawFormants.replace("--undefined--","-100").split()
 
 Time = []
@@ -18,6 +19,9 @@ F1   = []
 F2   = []
 F3   = []
 
+# turn lists into lists for Time, F1, F2, and F3
+# would be easier with numpy but numpy runs into overflow errors more easily, and 
+# I didn't want anybody to have to install it if they didn't have it already
 for k in range(0,len(praatRawFormants), 5):
    Time.append(float(praatRawFormants[k]))
 
@@ -35,6 +39,7 @@ F2_moving = sum(F2[0:6]) / 6
 F3_moving = sum(F3[0:6]) / 6
 
 cutoff = 200 # frequency difference, in Hertz, where we declare the diphthong's first vowel ends
+# we were going to do 60 Hz, but then I actually tried this and realized it was a terrible idea
 cutoffTime = 0
 
 # compute CUMULATIVE moving averages
@@ -47,12 +52,13 @@ for n in range(len(Time)):
    if (n > 3 and
       (F1_now - F1_moving > cutoff or F1_now - F1_moving < -cutoff or 
        F2_now - F2_moving > cutoff or F2_now - F2_moving < -cutoff#or 
-       #F3_now - F3_moving > cutoff or F3_now - F3_moving < -cutoff
+      #F3_now - F3_moving > cutoff or F3_now - F3_moving < -cutoff
+       # basically, I found that F3 doesn't really work well for this... why though, I don't know
       )):
       cutoffTime = Time[n]
       break # ...then we stop measuring
    
-   if (n > 6):
+   if (n > 6): # re-compute moving average, but don't let earliest measurements skew the entire average
       F1_moving = sum(F1[0:n + 1]) / (n + 1)
       F2_moving = sum(F2[0:n + 1]) / (n + 1)
       F3_moving = sum(F3[0:n + 1]) / (n + 1)
@@ -76,13 +82,3 @@ if cutoffTime - Time[0] < 0.04:
          "jump around noisily in Praat, you may want to click \"formant settings\" \n" +
          "and set your window length to 0.04 s. If the red dots disappear, you may\n"+
          "want to exclude parts where they disappear from your selection.")
-
-
-
-
-
-
-
-
-
-
